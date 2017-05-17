@@ -1,167 +1,46 @@
-'use strict';
-var _InCallManager = require('react-native').NativeModules.InCallManager;
-import {
-    Platform,
-    Vibration,
-} from 'react-native';
+'use strict'
 
 class InCallManager {
-    constructor() {
-        this.vibrate = false;
-        this.recordPermission = 'unknow';
-        this.cameraPermission = 'unknow';
-        this.audioUriMap = {
-            ringtone: { _BUNDLE_: null, _DEFAULT_: null},
-            ringback: { _BUNDLE_: null, _DEFAULT_: null},
-            busytone: { _BUNDLE_: null, _DEFAULT_: null},
-        };
-        this.checkRecordPermission = this.checkRecordPermission.bind(this);
-        this.requestRecordPermission = this.requestRecordPermission.bind(this);
-        this.checkCameraPermission = this.checkCameraPermission.bind(this);
-        this.requestCameraPermission = this.requestCameraPermission.bind(this);
-        this.checkRecordPermission();
-        this.checkCameraPermission();
-    }
+  start(setup) {}
 
-    start(setup) {
-        setup = (setup === undefined) ? {} : setup;
-        let auto = (setup.auto === false) ? false : true;
-        let media = (setup.media === 'video') ? 'video' : 'audio';
-        let ringback = (!!setup.ringback) ? (typeof setup.ringback === 'string') ? setup.ringback : "" : "";
-        _InCallManager.start(media, auto, ringback);
-    }
+  stop(setup) {}
 
-    stop(setup) {
-        setup = (setup === undefined) ? {} : setup;
-        let busytone = (!!setup.busytone) ? (typeof setup.busytone === 'string') ? setup.busytone : "" : "";
-        _InCallManager.stop(busytone);
-    }
+  turnScreenOff() {}
 
-    turnScreenOff() {
-        _InCallManager.turnScreenOff();
-    }
+  turnScreenOn() {}
 
-    turnScreenOn() {
-        _InCallManager.turnScreenOn();
-    }
+  setFlashOn(enable, brightness) {}
 
-    setFlashOn(enable, brightness) {
-        if (Platform.OS === 'ios') {
-            enable = (enable === true) ? true : false;
-            brightness = (typeof brightness === 'number') ? brightness : 0;
-            _InCallManager.setFlashOn(enable, brightness);
-        } else {
-            console.log("Android doesn't support setFlashOn(enable, brightness)");
-        }
-    }
+  setKeepScreenOn(enable) {}
 
+  setSpeakerphoneOn(enable) {}
 
-    setKeepScreenOn(enable) {
-        enable = (enable === true) ? true : false;
-        _InCallManager.setKeepScreenOn(enable);
-    }
+  setForceSpeakerphoneOn(_flag) {}
 
-    setSpeakerphoneOn(enable) {
-        enable = (enable === true) ? true : false;
-        _InCallManager.setSpeakerphoneOn(enable);
-    }
+  setMicrophoneMute(enable) {}
 
-    setForceSpeakerphoneOn(_flag) {
-        let flag = (typeof _flag === "boolean") ? (_flag) ? 1 : -1 : 0;
-        _InCallManager.setForceSpeakerphoneOn(flag);
-    }
+  startRingtone(
+    ringtone,
+    vibrate_pattern,
+    ios_category,
+    seconds
+  ) {}
 
-    setMicrophoneMute(enable) {
-        enable = (enable === true) ? true : false;
-        _InCallManager.setMicrophoneMute(enable);
-    }
+  stopRingtone() {}
 
-    startRingtone(ringtone, vibrate_pattern, ios_category, seconds) {
-        ringtone = (typeof ringtone === 'string') ? ringtone : "_DEFAULT_";
-        this.vibrate = (Array.isArray(vibrate_pattern)) ? true : false;
-        ios_category = (ios_category === 'playback') ? 'playback' : "default";
-        seconds = (typeof seconds === 'number' && seconds > 0) ? parseInt(seconds) : -1; // --- android only, default looping
+  stopRingback() {}
 
-        if (Platform.OS === 'android') {
-            _InCallManager.startRingtone(ringtone, seconds);
-        } else {
-            _InCallManager.startRingtone(ringtone, ios_category);
-        }
+  async checkRecordPermission() {}
 
-        // --- should not use repeat, it may cause infinite loop in some cases.
-        if (this.vibrate) {
-            Vibration.vibrate(vibrate_pattern, false); // --- ios needs RN 0.34 to support vibration pattern
-        }
-    }
+  async requestRecordPermission() {}
 
-    stopRingtone() {
-        if (this.vibrate) {
-            Vibration.cancel();
-        }
-        _InCallManager.stopRingtone();
-    }
+  async checkCameraPermission() {}
 
-    stopRingback() {
-        _InCallManager.stopRingback();
-    }
+  async requestCameraPermission() {}
 
-    async checkRecordPermission() {
-        // --- on android which api < 23, it will always be "granted"
-        let result = await _InCallManager.checkRecordPermission();
-        this.recordPermission = result;
-        return result;
-    }
+  pokeScreen(_timeout) {}
 
-    async requestRecordPermission() {
-        // --- on android which api < 23, it will always be "granted"
-        let result = await _InCallManager.requestRecordPermission();
-        this.recordPermission = result;
-        return result;
-    }
-
-    async checkCameraPermission() {
-        // --- on android which api < 23, it will always be "granted"
-        let result = await _InCallManager.checkCameraPermission();
-        this.cameraPermission = result;
-        return result;
-    }
-
-    async requestCameraPermission() {
-        // --- on android which api < 23, it will always be "granted"
-        let result = await _InCallManager.requestCameraPermission();
-        this.cameraPermission = result;
-        return result;
-    }
-
-    pokeScreen(_timeout) {
-        if (Platform.OS === 'android') {
-            let timeout = (typeof _timeout === "number" && _timeout > 0) ? _timeout : 0;
-            _InCallManager.pokeScreen(timeout);
-        } else {
-            console.log("ios doesn't support pokeScreen()");
-        }
-    }
-
-    async getAudioUri(audioType, fileType) {
-        if (typeof this.audioUriMap[audioType] === "undefined") {
-            return null;
-        }
-        if (this.audioUriMap[audioType][fileType]) {
-            return this.audioUriMap[audioType][fileType];
-        } else {
-            try {
-                let result = await _InCallManager.getAudioUriJS(audioType, fileType);
-                if (typeof result === 'string' && result.length > 0) {
-                    this.audioUriMap[audioType][fileType] = result;
-                    return result
-                } else {
-                    return null;
-                }
-            } catch (err) {
-                return null;
-            }
-        }
-    }
+  async getAudioUri(audioType, fileType) {}
 }
 
-export default new InCallManager();
+export default new InCallManager()
